@@ -1,0 +1,56 @@
+import requests
+from datetime import datetime
+import os
+
+
+GENDER = 'male'
+WEIGHT_KG = '97'
+HEIGHT_CM = '180'
+AGE = '39'
+
+APP_ID = os.environ['APP_ID']
+API_KEY = os.environ['API_KEY']
+SHEETY_USERNAME = os.environ['SHEETY_USERNAME']
+SHEETY_PASSWORD = os.environ['SHEETY_PASSWORD']
+
+
+exercise_endpoint = "https://trackapi.nutritionix.com/v2/natural/exercise"
+
+exercise_text = input("Tell me which exercises you did: ")
+
+headers = {
+    "x-app-id": APP_ID,
+    "x-app-key": API_KEY,
+}
+
+parameters = {
+    "query": exercise_text,
+    "gender": GENDER,
+    "weight_kg": WEIGHT_KG,
+    "height_cm": HEIGHT_CM,
+    "age": AGE
+}
+
+response = requests.post(exercise_endpoint, json=parameters, headers=headers)
+result = response.json()
+print(result)
+
+today_date = datetime.now().strftime("%d/%m/%Y")
+now_time = datetime.now().strftime("%X")
+
+sheet_endpoint = 'https://api.sheety.co/6002465be9d0759ca74e418579ad0e41/workoutTracking/workouts'
+
+for exercise in result["exercises"]:
+    sheet_inputs = {
+        "workout": {
+            "date": today_date,
+            "time": now_time,
+            "exercise": exercise["name"].title(),
+            "duration": exercise["duration_min"],
+            "calories": exercise["nf_calories"]
+        }
+    }
+
+    sheet_response = requests.post(sheet_endpoint, json=sheet_inputs, auth=(SHEETY_USERNAME, SHEETY_PASSWORD))
+
+    print(sheet_response.text)
